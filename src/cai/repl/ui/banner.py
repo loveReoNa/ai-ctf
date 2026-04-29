@@ -160,36 +160,22 @@ def display_banner(console: Console):
     """
     version = get_version()
 
-    # Original banner with Alias Robotics colors (blue and white)
-    # Use noqa to ignore line length for the ASCII art
+    # ai-ctf ASCII art banner
     banner = f"""
-[bold blue]                CCCCCCCCCCCCC      ++++++++   ++++++++      IIIIIIIIII
-[bold blue]             CCC::::::::::::C  ++++++++++       ++++++++++  I::::::::I
-[bold blue]           CC:::::::::::::::C ++++++++++         ++++++++++ I::::::::I
-[bold blue]          C:::::CCCCCCCC::::C +++++++++    ++     +++++++++ II::::::II
-[bold blue]         C:::::C       CCCCCC +++++++     +++++     +++++++   I::::I
-[bold blue]        C:::::C                +++++     +++++++     +++++    I::::I
-[bold blue]        C:::::C                ++++                   ++++    I::::I
-[bold blue]        C:::::C                 ++                     ++     I::::I
-[bold blue]        C:::::C                  +   +++++++++++++++   +      I::::I
-[bold blue]        C:::::C                    +++++++++++++++++++        I::::I
-[bold blue]        C:::::C                     +++++++++++++++++         I::::I
-[bold blue]         C:::::C       CCCCCC        +++++++++++++++          I::::I
-[bold blue]          C:::::CCCCCCCC::::C         +++++++++++++         II::::::II
-[bold blue]           CC:::::::::::::::C           +++++++++           I::::::::I
-[bold blue]             CCC::::::::::::C             +++++             I::::::::I
-[bold blue]                CCCCCCCCCCCCC               ++              IIIIIIIIII
-
-[bold blue]                              Cybersecurity AI (AC), v{version}[/bold blue]
-[white]                                  Bug bounty-ready AI[/white]
+[bold cyan]
+     █████╗ ██╗      ██████╗████████╗███████╗
+    ██╔══██╗██║     ██╔════╝╚══██╔══╝██╔════╝
+    ███████║██║     ██║        ██║   █████╗  
+    ██╔══██║██║     ██║        ██║   ██╔══╝  
+    ██║  ██║██║     ╚██████╗   ██║   ██║     
+    ╚═╝  ╚═╝╚═╝      ╚═════╝   ╚═╝   ╚═╝     
+[bold cyan]
+[bold yellow]                          AI-Powered Cybersecurity Framework[/bold yellow]
     """
 
     console.print(banner, end="")
-
-    # # Create a table showcasing CAI framework capabilities
-    # #
-    # # reconsider in the future if necessary
-    # display_framework_capabilities(console)
+    # Only show version in a small footnote
+    console.print(f"[dim]v{version}[/dim]", end="")
 
 
 def display_framework_capabilities(console: Console):

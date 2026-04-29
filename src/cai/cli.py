@@ -300,7 +300,7 @@ from cai.repl.commands.parallel import PARALLEL_CONFIGS, ParallelConfig, PARALLE
 
 # Global storage for shared message histories (keyed by a unique identifier)
 UNIFIED_MESSAGE_HISTORIES = {}
-from cai.repl.ui.banner import display_banner, display_quick_guide
+from cai.repl.ui.banner import display_banner
 from cai.repl.ui.keybindings import create_key_bindings
 from cai.repl.ui.logging import setup_session_logging
 from cai.repl.ui.prompt import get_user_input
@@ -480,7 +480,6 @@ def run_cai_cli(
     # Display banner
     display_banner(console)
     print("\n")
-    display_quick_guide(console)
 
     # Function to get the short name of the agent for display
     def get_agent_short_name(agent):
