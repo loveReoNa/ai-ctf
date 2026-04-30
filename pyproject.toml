@@ -1,7 +1,7 @@
 [project]
-name = "cai-framework"
-version = "0.5.10"
-description = "Cybersecurity AI Framework"
+name = "ai-ctf"
+version = "0.1.0"
+description = "AI Agent CTF Capability Quantitative Evaluation System - Intelligent Attack Simulation System for CTF Challenges"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "Dual-licensed MIT and Proprietary"}
