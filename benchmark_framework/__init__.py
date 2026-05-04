@@ -1,7 +1,43 @@
-"""
-模块二：安全工具封装与 MCP 适配 (Security Tool Wrapping & MCP Integration)
+"""Benchmark Framework Module for CTF Agent evaluation.
 
-对 LiveMCPBench 提供的工具进行大语言模型友好型封装。
+This module provides:
+- ToolWrapper and ToolBenchmarkRunner for controlled tool execution
+- OutputSanitizer and FlagMaskingSanitizer for output cleaning
+- LiveMCPBenchParser and XBowLogParser for log parsing
+- ToolClassifier and ToolCategory for tool categorization
 """
 
-__version__ = "0.1.0"
+from benchmark_framework.output_sanitizer import FlagMaskingSanitizer, OutputSanitizer
+from benchmark_framework.parsers import LiveMCPBenchParser, ParsedBenchmarkRun, XBowLogParser
+from benchmark_framework.tool_category import (
+    KNOWN_TOOL_CATEGORIES,
+    TOOL_PHASE_MAP,
+    CategoryStats,
+    ToolCategory,
+    ToolClassifier,
+)
+from benchmark_framework.tool_wrapper import (
+    ToolBenchmarkRunner,
+    ToolExecutionRecord,
+    ToolWrapper,
+)
+
+__all__ = [
+    # Tool wrapper
+    "ToolWrapper",
+    "ToolExecutionRecord",
+    "ToolBenchmarkRunner",
+    # Sanitizers
+    "OutputSanitizer",
+    "FlagMaskingSanitizer",
+    # Parsers
+    "LiveMCPBenchParser",
+    "XBowLogParser",
+    "ParsedBenchmarkRun",
+    # Tool categories
+    "ToolCategory",
+    "ToolClassifier",
+    "CategoryStats",
+    "KNOWN_TOOL_CATEGORIES",
+    "TOOL_PHASE_MAP",
+]

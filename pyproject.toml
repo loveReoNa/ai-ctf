@@ -12,6 +12,8 @@ dependencies = [
     "matplotlib>=3.0, <4",
     "numpy>=1.21, <3",
     "pandas>=1.3, <3",
+    "jinja2>=3.0",
+    "plotly>=5.0",
     # core cai
     "openai==1.75.0",
     "pydantic>=2.10, <3",
@@ -34,6 +36,7 @@ dependencies = [
     "flask",
     "networkx",
     "PyPDF2",
+    "jsonschema>=4.0",
 ]
 classifiers = [
     "Typing :: Typed",
@@ -56,6 +59,7 @@ Repository = "https://github.com/openai/openai-agents-python"
 [project.optional-dependencies]
 voice = ["numpy>=2.2.0, <3; python_version>='3.10'", "websockets>=15.0, <16"]
 viz = ["graphviz>=0.17"]
+docker_sandbox = ["docker>=7.0", "cvss>=3.0"]
 
 [dependency-groups]
 dev = [
