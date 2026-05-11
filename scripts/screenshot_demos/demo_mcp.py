@@ -52,8 +52,8 @@ for name, transport, cmd, args in servers_config:
 servers = registry.list_servers()
 print(f"\n{'ID':<4} {'Server Name':<25} {'Transport':<18} {'Command'}")
 print("-" * 70)
-for i, s in enumerate(servers, 1):
-    print(f"{i:<4} {s.server_name:<25} {s.transport_type:<18} {s.command}")
+for i, (name, cfg) in enumerate(servers.items(), 1):
+    print(f"{i:<4} {cfg.server_name:<25} {cfg.transport_type:<18} {cfg.command}")
 
 print(f"\nTotal: {len(servers)} MCP servers registered")
 print(f"Categories: Reconnaissance(4) + Enumeration(3) + Exploitation(5) + Post-Exploitation(2) + FlagCapture(1)")
