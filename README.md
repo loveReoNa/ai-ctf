@@ -1,57 +1,57 @@
 # AI-CTF: Intelligent Attack Simulation System for CTF Challenges
 
-AI Agent CTF 能力量化评测系统 — 毕设项目
+AI Agent CTF Capability Quantitative Evaluation System — Graduation Project
 
-## 项目概述
+## Project Overview
 
-本项目旨在构建一个基于 ReAct 架构的智能 CTF 攻击模拟系统，通过 MCP (Model Context Protocol) 协议对接安全工具，并使用 LiveMCPBench / XBow 作为基准测试平台，对 AI Agent 的 CTF 解题能力进行多维度量化评测。
+This project aims to build an intelligent CTF attack simulation system based on the ReAct architecture. It interfaces with security tools via the MCP (Model Context Protocol) and uses LiveMCPBench / XBow as the benchmarking platform to perform multi-dimensional quantitative evaluation of AI Agent CTF problem-solving capabilities.
 
-## 模块划分
+## Module Division
 
-| 模块 | 名称 | 负责人 | 状态 |
-|------|------|--------|------|
-| 模块一 | MCP 协议适配与 Agent 大脑 | AI 大脑架构师 | 🚧 待开发 |
-| 模块二 | 安全工具封装与 MCP 适配 | 安全生态与工具集成工程师 | 🚧 待开发 |
-| 模块三 | 基准测试环境与自动化 | 量化基准测试架构师 | 🚧 待开发 |
-| 模块四 | 数据分析与可视化 | 数据科学家与项目大管家 | 🚧 待开发 |
+| Module | Name | Owner | Status |
+|--------|------|-------|--------|
+| Module 1 | MCP Protocol Adaptation & Agent Brain | AI Brain Architect | 🚧 In Development |
+| Module 2 | Security Tool Wrapping & MCP Adaptation | Security Ecosystem & Tool Integration Engineer | 🚧 In Development |
+| Module 3 | Benchmark Environment & Automation | Quantitative Benchmark Architect | 🚧 In Development |
+| Module 4 | Data Analysis & Visualization | Data Scientist & Project Manager | 🚧 In Development |
 
-## 目录结构
+## Directory Structure
 
 ```
 ai-ctf/
-├── src/cai/                   # 核心 Agent 框架（ReAct Agent + MCP SDK）
-├── mcp_integration/           # 模块一：MCP 协议适配与 Agent 大脑
-├── benchmark_framework/       # 模块二：安全工具封装与 MCP 适配
-├── visualization_dashboard/   # 模块三：基准测试环境与自动化
-├── data_analysis/             # 模块四：数据分析与可视化面板
+├── src/cai/                   # Core Agent Framework (ReAct Agent + MCP SDK)
+├── mcp_integration/           # Module 1: MCP Protocol Adaptation & Agent Brain
+├── benchmark_framework/       # Module 2: Security Tool Wrapping & MCP Adaptation
+├── visualization_dashboard/   # Module 3: Benchmark Environment & Automation
+├── data_analysis/             # Module 4: Data Analysis & Visualization Panel
 ├── portfolio/                 # Final Portfolio
-└── rnd_project_docs/          # 毕设相关文档
+└── rnd_project_docs/          # Graduation Project Related Documents
 ```
 
-## 量化指标
+## Quantitative Metrics
 
-### 效率维度
-- 解题成功率
-- 平均解题时间
-- Token 消耗效率
+### Efficiency Dimension
+- Problem-solving success rate
+- Average problem-solving time
+- Token consumption efficiency
 
-### 智能维度
-- 工具调用准确率（成功次数/总次数）
-- 攻击路径正确率
-- 策略自适应能力
+### Intelligence Dimension
+- Tool invocation accuracy (success count / total count)
+- Attack path correctness rate
+- Strategy adaptability
 
-### 覆盖度维度
-- 漏洞类型覆盖度
-- 工具使用覆盖度
-- 攻击技术覆盖度
+### Coverage Dimension
+- Vulnerability type coverage
+- Tool usage coverage
+- Attack technique coverage
 
-## 技术栈
+## Tech Stack
 
-- **Agent 框架**：Python, OpenAI API, ReAct Agent Pattern
-- **MCP 协议**：MCP (Model Context Protocol), LiveMCPBench
-- **安全工具**：sqlmap, nmap, OWASP ZAP, Burp Suite 等
-- **测试平台**：Docker, XBow, CTF 靶机
-- **可视化**：Python (matplotlib, pandas), Web 前端
+- **Agent Framework**: Python, OpenAI API, ReAct Agent Pattern
+- **MCP Protocol**: MCP (Model Context Protocol), LiveMCPBench
+- **Security Tools**: sqlmap, nmap, OWASP ZAP, Burp Suite, etc.
+- **Testing Platform**: Docker, XBow, CTF target machines
+- **Visualization**: Python (matplotlib, pandas), Web frontend
 
 ## License
 
