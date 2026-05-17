@@ -1,0 +1,857 @@
+================================================================================
+                    Individual Work Log
+================================================================================
+
+Project Title:       AI Agent CTF Capability Quantitative Evaluation System
+Member Role:         Member A — AI Brain Architect (The Brain)
+Module:              Module 1 — ReAct-based Intelligent Agent Brain Development
+                     and MCP Adaptation
+Student Name:        [Member A Name]
+Student ID:          [Student ID]
+Supervisor:          Dr. Xu Xiang
+Date Range:          March 3, 2026 — May 12, 2026
+Total Hours:         117.0 hours
+
+================================================================================
+Week 1 (March 3 — March 9, 2026)
+================================================================================
+
+2026-03-03 (Mon) — 2.5 hours
+Task:     Read the project proposal and clarify technical choices and deliverables
+          for Module 1.
+Done:     Thoroughly read the Topic 13 project proposal. Confirmed responsibility
+          for "ReAct-based Intelligent Agent Brain Development and MCP Adaptation."
+          Identified core technology stack: OpenAI API (GPT-4o), LangChain, and
+          MCP Protocol (2024-11-05 specification).
+Problem:  Understanding of MCP protocol was superficial — unclear about its
+          message format in practical engineering contexts.
+Solution: Downloaded the official Anthropic MCP Specification document; planned
+          to study it in depth this week.
+Plan:     Set up a Python virtual environment, install LangChain and OpenAI SDK,
+          and build a first working ReAct Agent demo.
+
+2026-03-04 (Tue) — 3.0 hours
+Task:     Set up the development environment and implement a minimal viable ReAct
+          Agent prototype.
+Done:     Initialized project virtual environment using uv. Installed langchain,
+          langchain-openai, and openai. Wrote the first ReAct Agent test script
+          agent_demo.py: used GPT-4o as the reasoning engine, bound with a mock
+          get_ctf_challenge_info tool. The Agent successfully completed a full
+          reasoning chain: "query challenge → analyze → output solution approach."
+Problem:  LangChain 0.3.x API differs from tutorials; create_react_agent import
+          path had changed.
+Solution: Consulted the official LangChain migration guide and switched to
+          langgraph.prebuilt.create_react_agent.
+Plan:     Deep-dive into MCP protocol JSON-RPC message format; attempt to manually
+          construct MCP requests in Python.
+
+2026-03-05 (Wed) — 2.0 hours
+Task:     Theoretical study of the MCP protocol.
+Done:     Studied the MCP Specification 2024-11-05 in detail, focusing on the
+          request/response schemas of three core methods: initialize, tools/list,
+          and tools/call. Compiled notes: MCP uses JSON-RPC 2.0 as its transport
+          protocol and supports both stdio and SSE transport modes. Drafted an
+          MCP Client-Server interaction sequence diagram.
+Problem:  None.
+Solution: None.
+Plan:     Attempt to launch an MCP Server via Python subprocess and communicate
+          with it.
+
+2026-03-06 (Thu) — 3.5 hours
+Task:     Implement the basic MCP Client communication framework.
+Done:     Wrote mcp_client.py: launched an MCP Server via subprocess over stdio,
+          sent an initialize request in JSON-RPC 2.0 format, and parsed the
+          response. Successfully connected to the official mcp-filesystem-server
+          example and obtained its server capability declaration. Implemented
+          the list_tools() method and successfully retrieved the 5 tool
+          definitions (schemas) provided by the filesystem server.
+Problem:  stdio pipe read/write prone to deadlock — writing to stdin then
+          immediately reading from stdout would block.
+Solution: Introduced asyncio; used asyncio.create_subprocess_exec for asynchronous
+          subprocess management, with separate coroutines handling stdin/stdout.
+Plan:     Implement the call_tool() method and complete the core MCP Client
+          functionality loop.
+
+2026-03-07 (Fri) — 2.0 hours
+Task:     Complete MCP Client tool invocation functionality + team meeting.
+Done:     Implemented the call_tool(name, arguments) method; successfully called
+          the read_file tool and received its output. Attended the first all-team
+          online meeting (30 min): confirmed role boundaries — A handles Agent
+          Brain & MCP integration, B handles tool cleaning, C handles the
+          benchmark environment, D handles data visualization & coordination.
+          Agreed on an interface specification with B: tools cleaned by B must
+          return a unified JSON format
+          {"status": "success"/"error", "data": {...}, "error_message": ""}.
+Problem:  None.
+Solution: None.
+Plan:     Rest over the weekend.
+
+================================================================================
+Week 2 (March 10 — March 16, 2026)
+================================================================================
+
+2026-03-10 (Mon) — 3.0 hours
+Task:     Integrate the MCP Client into the LangChain ReAct Agent.
+Done:     Designed the MCPToolWrapper class: inherits from
+          langchain_core.tools.BaseTool and dynamically converts tools provided
+          by an MCP Server into LangChain Tool objects. Key implementation:
+          the _parse_schema() method converts an MCP inputSchema (JSON Schema
+          format) into LangChain's Tool.args_schema (Pydantic model). Successfully
+          auto-registered all 5 tools of the mcp-filesystem-server as LangChain
+          Tools.
+Problem:  Nested $defs references in MCP JSON Schemas were difficult to map
+          directly to Pydantic Fields.
+Solution: Adopted a simplification strategy — flatten complex nested schemas
+          into a top-level parameter list, performing shallow resolution on
+          $ref references.
+Plan:     Write a demo where the Agent mounts MCP tools and completes a
+          filesystem query task.
+
+2026-03-11 (Tue) — 2.5 hours
+Task:     Write an MCP-Agent integration demo.
+Done:     Wrote demo_mcp_agent.py: the Agent mounted 5 tools from the filesystem
+          MCP Server and performed the task "list all .py files in the current
+          directory and read the contents of the first file." The Agent
+          autonomously reasoned: call list_directory to get file list → filter
+          .py files → call read_file to read the target file. The entire process
+          was completed autonomously with no human intervention. Recorded demo
+          footage.
+Problem:  The Agent would sometimes call the same tool repeatedly, getting
+          stuck in a loop.
+Solution: Added the constraint "call each tool at most once; if two calls yield
+          no useful information, report failure" to the System Prompt, along
+          with a hard limit of max_iterations=10.
+Plan:     Begin integrating with LiveMCPBench tool schema data.
+
+2026-03-12 (Wed) — 3.5 hours
+Task:     Integrate with LiveMCPBench; batch-parse tool schemas from 70 servers
+          totaling 527 tools.
+Done:     Retrieved the configuration list of all MCP Servers from the
+          LiveMCPBench repository. Wrote batch_schema_loader.py: iterated over 70
+          servers, launched each one, called tools/list, and stored the returned
+          tool schemas into a local JSON file all_tools_schema.json. Successfully
+          collected tool schemas from 48 servers (the remaining 22 could not be
+          started locally due to missing dependencies).
+Problem:  Some servers require specific system dependencies (e.g., Docker, Kali
+          Linux toolchain) unavailable on local Windows. Some servers timed out
+          on tools/list.
+Solution: For servers that could not be started locally, extracted static schema
+          definitions directly from LiveMCPBench configuration files as a
+          fallback. Added a 30-second timeout mechanism; timed-out servers are
+          marked as "unable to start" and skipped.
+Plan:     Write a schema compatibility analysis script to identify tools
+          requiring special adaptation.
+
+2026-03-13 (Thu) — 2.0 hours
+Task:     Tool schema compatibility analysis.
+Done:     Wrote schema_analyzer.py: scanned all 527 tool schemas one by one and
+          classified them into three categories:
+          [1] Directly usable (simple parameter types string/number/boolean,
+              no deep nesting): 312 (59.2%)
+          [2] Needs adaptation (contains enum, oneOf, $ref references):
+              158 (30.0%)
+          [3] Needs B's manual cleaning (complex nested objects / non-standard
+              JSON Schema): 57 (10.8%)
+          Exported the analysis results as CSV and shared with B and D.
+Problem:  None.
+Solution: None.
+Plan:     Upgrade MCPToolWrapper schema parsing capabilities for "needs
+          adaptation" tools.
+
+2026-03-14 (Fri) — 3.0 hours
+Task:     Upgrade Schema parser + team meeting.
+Done:     Extended MCPToolWrapper._parse_schema(): added support for enum, oneOf,
+          and anyOf by generating Pydantic Literal types and Union types.
+          Improved the compatibility rate of the 158 "needs adaptation" tools
+          from 0% to 85% (135 tools can now be auto-processed by the upgraded
+          parser). Attended the second all-team meeting (40 min): reported schema
+          analysis results and confirmed with B that the 57 complex tools will
+          be manually cleaned by B. Discussed Agent output log format with C and
+          agreed on using a unified JSON Lines format.
+Problem:  When oneOf contains nested $ref references, dynamic Pydantic model
+          generation fails.
+Solution: For oneOf containing nested $ref, applied a fallback strategy — set
+          the parameter type to Optional[str] and let the Agent decide on the
+          input by itself.
+Plan:     Read the latest MCP spec updates over the weekend; survey community
+          best practices.
+
+================================================================================
+Week 3 (March 17 — March 23, 2026)
+================================================================================
+
+2026-03-17 (Mon) — 3.0 hours
+Task:     Prompt engineering — design a dedicated System Prompt for CTF
+          challenge-solving scenarios.
+Done:     Designed a three-layer Prompt structure:
+          [1] Role Layer: "You are a world-class cybersecurity expert and CTF
+              competitor..."
+          [2] Methodology Layer: embedded the ReAct reasoning paradigm —
+              Observation → Thought → Action loop
+          [3] Constraint Layer: tool usage rules, safety boundaries, output
+              format requirements
+          Wrote prompts/ctf_solver_system.txt, approximately 800 tokens.
+Problem:  An overly long prompt causes the Agent to forget early observation
+          information.
+Solution: Required the Agent in the prompt to summarize the current state in a
+          single sentence at the start of each iteration ("Summary of Progress"),
+          leveraging the LLM's context compression capability.
+Plan:     Test the prompt using Mock tools.
+
+2026-03-18 (Tue) — 2.5 hours
+Task:     Build a set of Mock tools for Agent reasoning tests without a real
+          MCP Server environment.
+Done:     Wrote mock_tools.py: simulated 5 commonly used CTF tools:
+          - nmap_scan(target) — returns simulated port scan results
+          - gobuster_dir(target, wordlist) — returns simulated directory
+            enumeration results
+          - searchsploit(query) — returns simulated vulnerability search results
+          - get_flag(submission_token) — simulates flag submission
+          - read_challenge_description(challenge_id) — returns a simulated
+            challenge description
+          Each Mock tool returns structured JSON, simulating real MCP tool
+          output format.
+Problem:  None.
+Solution: None.
+Plan:     Run a full CTF solving flow using the Mock tools.
+
+2026-03-19 (Wed) — 3.5 hours
+Task:     End-to-end Mock test — Agent's full challenge-solving flow in a
+          simulated CTF environment.
+Done:     Designed a simulated scenario: a simple Web penetration challenge with
+          target IP 192.168.1.100. The Agent executed the full workflow:
+          1. Called read_challenge_description to understand the challenge.
+          2. Called nmap_scan("192.168.1.100") and discovered open ports 80
+             (HTTP) and 22 (SSH).
+          3. Called gobuster_dir("192.168.1.100", "common") and discovered
+             /admin and /uploads directories.
+          4. Reasoned that a file upload vulnerability might exist.
+          5. Called get_flag to submit the reasoning result (simulated success).
+          Recorded the full reasoning chain log: 5 tool calls, total duration
+          12.3s, token consumption 2,847.
+Problem:  The Agent hesitated at step 4, tending to continue enumerating rather
+          than exploiting the available information.
+Solution: Added the "Exploitation over Enumeration" principle to the System
+          Prompt — prioritize exploitation when sufficient information is
+          already available.
+Plan:     Optimize token consumption monitoring in preparation for subsequent
+          quantitative evaluation.
+
+2026-03-20 (Thu) — 2.0 hours
+Task:     Implement runtime token consumption and time tracking for the Agent.
+Done:     Instrumented MCPToolWrapper and the Agent main loop to record:
+          - Prompt Tokens / Completion Tokens for each LLM call
+          - start/end time for each tool call
+          - success/failure status of each tool call
+          Output format aligned with C's logging specification: one JSON Lines
+          record per step.
+Problem:  LangChain's callback system conflicted with custom instrumentation,
+          causing duplicate token counts.
+Solution: Replaced custom counting with LangChain's built-in get_openai_callback()
+          context manager to ensure data accuracy.
+Plan:     Begin writing the AI architecture section of the developer manual.
+
+2026-03-21 (Fri) — 2.5 hours
+Task:     Write the developer manual (AI Architecture section) + team meeting.
+Done:     Drafted the developer manual:
+          Chapter 2: AI Agent Brain Architecture (~1,200 words, covering ReAct
+          paradigm overview, system architecture diagram, and core component
+          descriptions).
+          Chapter 3: Prompt Design Specification (~800 words, covering three-
+          layer structure, few-shot example strategy, safety constraints and
+          boundaries).
+          Attended the third all-team meeting (30 min): C reported benchmark
+          environment build progress; D demonstrated the initial frontend radar
+          chart. Coordinated module integration timeline — target completion of
+          integration testing by April 15.
+Problem:  None.
+Solution: None.
+Plan:     Organize the MCP integration technical documentation draft over the
+          weekend.
+
+================================================================================
+Week 4 (March 24 — March 30, 2026)
+================================================================================
+
+2026-03-24 (Mon) — 3.0 hours
+Task:     Continue developer manual — MCP Integration Guide.
+Done:     Wrote Chapter 4 of the developer manual: MCP Protocol Integration
+          Guide (~1,500 words), covering:
+          - 4.1 MCP Protocol Overview (JSON-RPC 2.0, request/response/
+              notification model)
+          - 4.2 Transport Layer Implementation (stdio vs SSE; this project
+              uses stdio)
+          - 4.3 MCP Client Implementation Details (asyncio subprocess
+              management, message serialization)
+          - 4.4 Schema Conversion Strategy (JSON Schema → Pydantic model
+              mapping rules)
+          - 4.5 Known Limitations and Compatibility Issues
+          Included a code snippet index table pointing to key source locations.
+Problem:  None.
+Solution: None.
+Plan:     Research memory management solutions — cross-turn context retention
+          for the Agent.
+
+2026-03-25 (Tue) — 2.5 hours
+Task:     Design the Agent memory management solution.
+Done:     Compared three memory approaches:
+          [1] Buffer Memory (current approach): retains the most recent N
+              conversation turns; simple but token consumption grows linearly.
+          [2] Summary Memory: uses an LLM to periodically compress history into
+              a summary; reduces tokens but may lose details.
+          [3] Vector Store Memory: stores history in a vector database and
+              retrieves by relevance; suitable for long-term memory.
+          Decided on a hybrid approach: short-term (current session) uses
+          Buffer + Summary combined; long-term (across challenges) uses Vector
+          Store to persist key findings.
+Problem:  How to set the compression frequency for Summary Memory? Too frequent
+          wastes tokens; too infrequent degrades summary quality.
+Solution: Set an adaptive threshold — automatically trigger summary compression
+          when the Buffer exceeds 20 messages; retain the 5 most recent raw
+          messages after compression.
+Plan:     Implement the Summary Memory module.
+
+2026-03-26 (Wed) — 3.5 hours
+Task:     Implement the Summary Memory module.
+Done:     Wrote memory/summary_memory.py:
+          - ConversationSummaryMemory class extending LangChain's BaseMemory.
+          - When message count exceeds 20, calls the LLM to generate a dialogue
+            summary of at most 200 words.
+          - Summary format: [Completed Steps] → [Current State] → [Key Findings].
+          Integrated into the Agent main loop and validated summary quality:
+          compression ratio of 5:1 (20 messages → ~4 summary-equivalent
+          information units).
+Problem:  The summary LLM call adds extra API overhead (~500 tokens per call).
+Solution: Evaluated and found acceptable — compared to the token waste from
+          not compressing (linear growth), the compression approach is more
+          economical for long tasks.
+Plan:     Test the stability of Summary Memory in long-conversation scenarios.
+
+2026-03-27 (Thu) — 2.0 hours
+Task:     Memory stress testing.
+Done:     Constructed a long-chain test scenario requiring 30+ tool call rounds.
+          With Summary Memory enabled, the Agent successfully maintained context
+          coherence across 35 interaction rounds without forgetting early
+          information. Token consumption comparison: without memory optimization
+          18,500 tokens vs. with Summary enabled 12,300 tokens — a 33% saving.
+Problem:  Occasional Agent pauses during summary compression, affecting real-time
+          performance.
+Solution: Made summary compression an asynchronous background task that does not
+          block the Agent main loop.
+Plan:     Write the Agent log interceptor to integrate with C's log collection
+          system.
+
+2026-03-28 (Fri) — 2.5 hours
+Task:     Log interceptor development + team meeting.
+Done:     Wrote logging/interceptor.py: implemented the AgentLogInterceptor class
+          that intercepts 5 types of Agent runtime events:
+          1. agent_start — Agent start (challenge ID, timestamp, initial config)
+          2. llm_call — LLM call (Prompt/Completion Tokens, model name, duration)
+          3. tool_call — Tool call (tool name, parameters, return value,
+             success/failure, duration)
+          4. memory_compress — Memory compression event
+          5. agent_end — Agent end (total duration, total tokens, final state)
+          Each event is output as JSON Lines, fully aligned with C's logging
+          specification.
+          Attended the fourth all-team meeting (45 min): C demonstrated the
+          initial integration of target + MCP Server + Agent. B had completed
+          cleaning scripts for the 57 complex tools. Confirmed the first three-
+          module integration test for the first week of April.
+Problem:  None.
+Solution: None.
+Plan:     Rest over the weekend.
+
+================================================================================
+Week 5 (March 31 — April 6, 2026)
+================================================================================
+
+2026-03-31 (Mon) — 3.5 hours
+Task:     Prepare for the first three-module integration test — Agent connects
+          to B's cleaned tools.
+Done:     Received the 57 cleaned tool definitions (JSON Schema format) delivered
+          by B. Registered these 57 tools into the Agent's tool pool; together
+          with the 312 directly usable tools, the pool now contains 369 tools.
+          Wrote tool_registry.py: a tool registry center that organizes tool
+          indices by category (Reconnaissance / Exploitation / Post-Exploitation /
+          Utility).
+Problem:  Full registration of all 369 tools caused the System Prompt to become
+          excessively long (over 12,000 tokens), approaching 10% of GPT-4o's
+          context window.
+Solution: Implement on-demand tool discovery: after the Agent receives a
+          challenge description, it first calls search_tools(query) to retrieve
+          the most relevant tools (at most 10), then temporarily registers only
+          those tools into the conversation context. Similar to a RAG approach.
+Plan:     Implement the search_tools semantic retrieval function.
+
+2026-04-01 (Tue) — 3.0 hours
+Task:     Implement the tool semantic retrieval system.
+Done:     Wrote tool_retriever.py:
+          - Generated embeddings for the name + description of all 369 tools
+            using OpenAI text-embedding-3-small.
+          - Stored embeddings in a local ChromaDB vector database.
+          - Implemented the search_tools(query, top_k=10) method, returning the
+            most relevant tools based on cosine similarity.
+          Test: input "I need to scan open ports on a target" correctly returned
+          nmap_scan, masscan, rustscan, and other port scanning tools.
+Problem:  Initial embedding generation took a long time (369 tools × 512-dim
+          vectors, ~3 minutes).
+Solution: Made embedding generation a one-time operation; results are persisted
+          to a local file tool_embeddings.pkl and loaded directly on subsequent
+          startups.
+Plan:     Integrate tool retrieval into the Agent main loop.
+
+2026-04-02 (Wed) — 3.0 hours
+Task:     Integrate tool retrieval with Agent main loop + first integration test.
+Done:     Modified the Agent main loop: upon receiving a CTF challenge,
+          automatically calls search_tools to get the 10 most relevant tools
+          and dynamically registers them for the current session.
+          Conducted the first integration test with C's benchmark environment:
+          - C launched a simple target (Web penetration challenge).
+          - The Agent retrieved 8 relevant tools via tool retrieval and
+            successfully called 3 of them.
+          - Logs were correctly output to C's collection directory.
+          Issues found during integration: tool retrieval sometimes returned
+          irrelevant tools, affecting Agent decision-making efficiency.
+Problem:  Tool descriptions varied in quality; some had overly brief descriptions
+          (e.g., just "Scan ports"), leading to inaccurate semantic matching.
+Solution: Coordinated with B to expand the descriptions of key tools by adding
+          usage scenario keywords. Also adjusted the retrieval algorithm to
+          increase the weight of exact matches on tool names.
+Plan:     Fix issues found during integration; optimize tool retrieval precision.
+
+2026-04-03 (Thu) — 2.0 hours
+Task:     Optimize tool retrieval precision.
+Done:     Adjusted retrieval algorithm: increased the weight of exact matching
+          (tool name contains query keyword) from 0.3 to 0.6, keeping semantic
+          similarity weight at 0.4. Re-tested on 10 typical query scenarios;
+          Top-5 accuracy improved from 72% to 85%. Reviewed the descriptions of
+          B's 57 cleaned tools and helped B optimize 12 tools with unclear
+          descriptions.
+Problem:  None.
+Solution: None.
+Plan:     Implement Agent fault tolerance mechanisms — fallback strategies for
+          failed tool calls.
+
+2026-04-04 (Fri) — 2.5 hours
+Task:     Agent fault tolerance mechanisms + team meeting.
+Done:     Implemented a three-tier fault tolerance strategy:
+          [1] Retry Layer: automatically retry once on tool call failure
+              (2-second interval).
+          [2] Degradation Layer: if the retry also fails, attempt an alternative
+              tool (e.g., recommend masscan if nmap fails).
+          [3] Escalation Layer: if all attempts fail, the Agent outputs
+              FALLBACK: manual_intervention_required and saves the full context.
+          Attended the fifth all-team meeting (40 min): D demonstrated the
+          frontend dashboard integration status — it could already read C's log
+          files and generate bar charts. Set April 14 as the system integration
+          deadline; after that, no new features, only bug fixes and documentation
+          refinement.
+Problem:  None.
+Solution: None.
+Plan:     Review the completed developer manual content over the weekend and
+          fill in any gaps.
+
+================================================================================
+Week 6 (April 7 — April 13, 2026)
+================================================================================
+
+2026-04-07 (Mon) — 3.5 hours
+Task:     Full-scale tool integration test — ensure the Agent can interface with
+          all available MCP Servers.
+Done:     Launched all 48 locally runnable MCP Servers one by one and verified
+          that the Agent could correctly recognize and call their tools.
+          Results: 41 out of 48 servers could interface normally (85.4%); 7 had
+          compatibility issues:
+          - 3 servers used non-standard JSON-RPC error format → added tolerant
+            parsing logic.
+          - 2 servers returned schemas with circular references in tools/list →
+            added cycle detection.
+          - 2 servers mixed non-JSON content (e.g., startup logs) in stdio output
+            → added output filtering.
+          After fixes, available server count improved to 46/48 (95.8%).
+Problem:  Output filtering logic for some servers was not robust enough and
+          incorrectly filtered legal multi-line JSON.
+Solution: Switched to a JSON bracket-matching extraction algorithm instead of
+          simple line-based filtering.
+Plan:     Test Agent stability under concurrent scenarios.
+
+2026-04-08 (Tue) — 2.0 hours
+Task:     Concurrency stability test.
+Done:     Wrote test_concurrent.py: launched 5 Agent instances simultaneously,
+          each interfacing with a different MCP Server. Results: all 5 Agents
+          ran normally with no resource contention. Monitoring metrics: memory
+          usage ~450 MB per instance, CPU usage ~20% per instance (including LLM
+          API wait time).
+Problem:  asyncio event loop occasionally threw "Event loop is closed" errors
+          under high concurrency.
+Solution: Created an independent event loop for each Agent instance
+          (asyncio.new_event_loop()) to avoid race conditions from sharing an
+          event loop.
+Plan:     Developer manual Chapter 5 — Agent Configuration and Debugging Guide.
+
+2026-04-09 (Wed) — 3.0 hours
+Task:     Continue developer manual + optimize Prompt few-shot examples.
+Done:     Wrote Chapter 5 of the developer manual: Agent Configuration and
+          Debugging Guide (~1,000 words), covering environment variable
+          configuration, tool pool configuration (whitelist/blacklist mode),
+          log levels and debug mode, and common troubleshooting.
+          Optimized the few-shot examples in the System Prompt: increased from
+          2 to 5 examples, covering five scenarios: information gathering,
+          vulnerability exploitation, privilege escalation, lateral movement,
+          and flag submission.
+Problem:  5 few-shot examples inflated the System Prompt to ~2,000 tokens.
+Solution: Adopted dynamic few-shot — load only 2 relevant examples based on the
+          challenge type (Web / PWN / Crypto / Misc) instead of all 5.
+Plan:     Second round of integration testing with C, using real LiveMCPBench
+          challenges.
+
+2026-04-10 (Thu) — 3.5 hours
+Task:     Second-round integration test — testing with real LiveMCPBench
+          challenges.
+Done:     C's benchmark environment had deployed 3 LiveMCPBench test challenges
+          (1 Easy, 1 Medium, 1 Hard). Agent test results:
+          - Easy challenge (SQL Injection): solved successfully, 8 min, 6 tool
+            calls.
+          - Medium challenge (File Inclusion): solved successfully, 22 min, 14
+            tool calls.
+          - Hard challenge (Buffer Overflow + Privilege Escalation): not fully
+            solved. The Agent identified the vulnerability but failed to write
+            a working exploit.
+          Analyzed the Hard challenge failure: the Agent lacked specialized
+          knowledge in binary exploitation and made logical errors when
+          generating shellcode.
+Problem:  The Agent performed poorly in scenarios requiring complex exploit
+          writing.
+Solution: Documented as a system capability boundary — the current Agent excels
+          at information gathering and known-vulnerability exploitation; complex
+          exploit writing requires external specialized tools (e.g., pwntools
+          integration, recommended as a future optimization direction).
+Plan:     Fine-tune Prompt and tool retrieval strategy based on integration
+          results + team meeting.
+
+2026-04-11 (Fri) — 3.0 hours
+Task:     Prompt fine-tuning + team meeting.
+Done:     Based on the Hard challenge failure experience, added a "Know Your
+          Limits" module to the Prompt: when the Agent determines its current
+          capability is insufficient to solve a challenge, it outputs
+          CAPABILITY_BOUNDARY: <specific reason> instead of blindly attempting.
+          Re-tested all 3 challenges; for the Hard challenge, the Agent output
+          CAPABILITY_BOUNDARY within 15 minutes, avoiding the previous 45
+          minutes of futile attempts.
+          Attended the sixth all-team meeting (60 min, critical milestone):
+          - Confirmed April 14 as the system integration deadline.
+          - C reported that the benchmark environment was stable and ready for
+            batch testing.
+          - D reported the visualization dashboard was 90% complete.
+          - Team lead D assigned a documentation sprint: each member to complete
+            their documentation sections over the weekend.
+Problem:  None.
+Solution: None.
+Plan:     Draft the personal reflective report over the weekend; tidy up code
+          comments.
+
+================================================================================
+Week 7 (April 14 — April 20, 2026) — System Integration & Documentation Sprint
+================================================================================
+
+2026-04-14 (Mon) — 4.0 hours
+Task:     Final system integration — Agent module integration with the full
+          system.
+Done:     Merged Agent code into the main repository under src/cai/. Collaborated
+          with C to write the Dockerfile: packaged Agent dependencies (Python
+          3.11, LangChain, ChromaDB) into a Docker image. Wrote the Agent launch
+          script entrypoint.sh: auto-loads environment variables, initializes
+          ChromaDB, and starts the Agent service. Docker image built successfully;
+          size 1.2 GB (including all dependencies).
+Problem:  ChromaDB requires a persistent storage volume in Docker; otherwise,
+          vector data is lost on every restart.
+Solution: Configured VOLUME /app/data in the Dockerfile and mounted a host
+          directory at startup.
+Plan:     Docker image testing + one-click deployment script verification.
+
+2026-04-15 (Tue) — 3.0 hours
+Task:     One-click deployment script verification + end-to-end testing.
+Done:     Executed the one-click deployment script on a fresh Kali Linux VM:
+          git clone → docker build → docker compose up. Complete end-to-end
+          deployment from scratch in 30 minutes.
+          End-to-end test: ran 1 Easy challenge; the Agent completed the full
+          automated workflow from receiving the challenge to outputting the
+          answer; logs were correctly written to disk.
+Problem:  The Kali VM default Python version was 3.9, incompatible with the
+          project's requirement of 3.11.
+Solution: Added pyenv installation and Python 3.11 environment configuration
+          steps to the one-click deployment script.
+Plan:     Batch testing — run all 3 test challenges × 3 times each to collect
+          stability data.
+
+2026-04-16 (Wed) — 3.5 hours
+Task:     Agent stability batch testing.
+Done:     Performed 3 challenges × 3 runs = 9 test runs:
+          - Easy: 3/3 success (100%)
+          - Medium: 2/3 success (66.7%; 1 run timed out due to API rate limit)
+          - Hard: 0/3 success (0%; all output CAPABILITY_BOUNDARY within 15 min)
+          Compiled results into agent_batch_test_results.json and delivered to D
+          for metric computation.
+Problem:  OpenAI API triggered Rate Limit on consecutive calls (500 requests per
+          minute limit).
+Solution: Added exponential backoff retry logic in the Agent main loop (initial
+          wait 1s, max wait 64s).
+Plan:     Finalize Module 1 code; write code comments and docstrings.
+
+2026-04-17 (Thu) — 3.0 hours
+Task:     Final code cleanup and documentation refinement.
+Done:     Added NumPy-style docstrings to all public functions and classes.
+          Wrote a module-level README.md (module overview, installation
+          instructions, configuration guide, API documentation links). Cleaned
+          up debug code; removed all print debug statements and unified use of
+          the logging module. Code line count: Module 1 totals 2,847 lines of
+          Python code (including tests).
+Problem:  None.
+Solution: None.
+Plan:     Begin writing the personal reflective report.
+
+2026-04-18 (Fri) — 4.0 hours
+Task:     Personal reflective report first draft + final team meeting.
+Done:     Drafted the personal Reflective Report, approximately 3,000 words:
+          - Introduction: project background and personal role positioning.
+          - Project Evaluation: self-assessment of Module 1 completion (goals vs
+            actual), review of key technical challenges.
+          - Theory-Practice Connection: theoretical foundations of the ReAct
+            paradigm and MCP protocol and their practical application in the
+            project.
+          - Personal & Professional Development: deeper mastery of the LangChain
+            ecosystem, experience as an early practitioner of the MCP protocol,
+            systematic thinking improvement in Agent architecture design.
+          - Conclusion: project gains and shortcomings, future career planning
+            in the AI Agent security domain.
+          Attended the seventh all-team meeting (60 min, final meeting):
+          - D summarized the status of all deliverables and confirmed that all
+            required documents were ready.
+          - Confirmed submission strategy: D is responsible for packaging and
+            uploading the Final Portfolio; each member submits personal
+            materials independently.
+          - Final Q&A to address remaining questions from team members.
+Problem:  None.
+Solution: None.
+Plan:     Refine the reflective report over the weekend; add references.
+
+================================================================================
+Week 8 (April 21 — April 27, 2026) — Documentation Refinement & Pre-Submission Check
+================================================================================
+
+2026-04-21 (Mon) — 2.5 hours
+Task:     Reflective report revision — supplement references.
+Done:     Added 12 references in APA 7th Edition format:
+          1. Yao, S. et al. (2023). ReAct: Synergizing Reasoning and Acting in
+             Language Models.
+          2. Anthropic. (2024). Model Context Protocol Specification v2024-11-05.
+          3. LangChain Documentation (2025). Building Agents with LangGraph.
+          4. OpenAI. (2025). GPT-4o System Card.
+          5. Wei, J. et al. (2022). Chain-of-Thought Prompting Elicits Reasoning
+             in Large Language Models.
+          6. Liu, Y. et al. (2024). Tool Learning with Foundation Models.
+          7. Xi, Z. et al. (2023). The Rise and Potential of Large Language Model
+             Based Agents: A Survey.
+          8. Wang, L. et al. (2024). A Survey on Large Language Model based
+             Autonomous Agents.
+          9. Shinn, N. et al. (2023). Reflexion: Language Agents with Verbal
+             Reinforcement Learning.
+          10. Mialon, G. et al. (2023). Augmented Language Models: A Survey.
+          11. LiveMCPBench. (2025). A Benchmark for MCP-based LLM Agents.
+          12. HashiCorp. (2023). JSON-RPC 2.0 Specification.
+          Cited the above references throughout the reflective report to ensure
+          each key argument has literature support.
+Problem:  Minor APA formatting details (e.g., DOI format, journal name
+          italicization) were error-prone.
+Solution: Used Google Scholar's APA citation feature to verify each entry,
+          ensuring format accuracy.
+Plan:     English abstract and polishing of the reflective report.
+
+2026-04-22 (Tue) — 2.0 hours
+Task:     English abstract for the reflective report + format check.
+Done:     Wrote the English abstract, approximately 200 words. Full document
+          format check: unified font (Times New Roman 12pt), line spacing (1.5x),
+          margins (2.54 cm). Inserted headers and page numbers; generated the
+          table of contents. Exported to PDF, named
+          10356_080901_[StudentID]_BS_001.pdf.
+Problem:  Table of contents page numbers shifted when converting from Word to PDF.
+Solution: Updated fields in Word (Ctrl+A → F9) before exporting to PDF.
+Plan:     Assemble the personal appendix materials package.
+
+2026-04-23 (Wed) — 1.5 hours
+Task:     Assemble personal appendix materials package.
+Done:     Collected and organized personal appendix materials:
+          1. COMP704 Research & Development Project-descriptor.pdf (downloaded
+             from the course website, kept as-is).
+          2. Individual Log.docx (this file, converted to .docx format).
+          3. Project Proposal.docx (final version obtained from Team Lead D).
+          Packaged into a RAR file: 10356_080901_[StudentID]_BS_002.rar.
+          Verified RAR file integrity (test extraction).
+Problem:  None.
+Solution: None.
+Plan:     Final code repository cleanup — ensure a clean commit history.
+
+2026-04-24 (Thu) — 2.0 hours
+Task:     Final code repository cleanup + Git commit history tidying.
+Done:     Cleaned up temporary files and abandoned branches in the Git repository.
+          Ensured all commit messages were clear and standardized (using
+          Conventional Commits format). Confirmed Module 1 files are well-
+          organized under src/cai/ with the following structure:
+          src/cai/
+          ├── agent/
+          │   ├── __init__.py
+          │   ├── react_agent.py          # ReAct Agent core
+          │   ├── tool_wrapper.py         # MCP tool wrapper
+          │   └── tool_retriever.py       # Tool semantic retrieval
+          ├── mcp/
+          │   ├── __init__.py
+          │   ├── client.py               # MCP Client implementation
+          │   └── schema_parser.py        # Schema parser
+          ├── memory/
+          │   ├── __init__.py
+          │   └── summary_memory.py       # Summary memory module
+          ├── logging/
+          │   ├── __init__.py
+          │   └── interceptor.py          # Log interceptor
+          ├── prompts/
+          │   └── ctf_solver_system.txt   # System Prompt
+          └── README.md                   # Module documentation
+          Pushed to the remote repository's main branch.
+Problem:  None.
+Solution: None.
+Plan:     Upload personal materials to the DingTalk group and complete archiving.
+
+2026-04-25 (Fri) — 1.0 hour
+Task:     Upload personal materials for archiving.
+Done:     Uploaded to the DingTalk group "合作班外方课电子归档":
+          - 10356_080901_[StudentID]_BS_001.pdf (Personal Reflective Report)
+          - 10356_080901_[StudentID]_BS_002.rar (Personal Appendix Materials)
+          Uploaded personal material backups to the team shared folder. Confirmed
+          that Team Lead D had received all team members' personal materials.
+Problem:  DingTalk has a 2 GB file size limit for RAR uploads; the personal
+          package was only ~45 MB, so no issue.
+Solution: None.
+Plan:     Rest over the weekend; the project is complete.
+
+================================================================================
+Week 9 (April 28 — May 4, 2026) — Buffer & Wrap-Up
+================================================================================
+
+2026-04-28 (Mon) — 1.5 hours
+Task:     Supplement documentation details — FAQ chapter in the developer manual.
+Done:     Based on common issues accumulated during the previous two weeks of
+          testing, added Appendix A: Frequently Asked Questions (~500 words) to
+          the developer manual:
+          - Q1: What to do if the Agent is unresponsive after startup?
+          - Q2: How to switch between different LLM models?
+          - Q3: How to troubleshoot MCP Server startup failures?
+          - Q4: How to add custom tools?
+          Shared the FAQ with D for inclusion in the final developer
+          documentation.
+Problem:  None.
+Solution: None.
+Plan:     No special arrangements.
+
+2026-04-29 (Tue) — 1.0 hour
+Task:     Final deliverable checklist verification.
+Done:     Item-by-item verification of the personal section of the "Final File
+          Submission Checklist":
+          [√] Personal Reflective Report PDF (BS_001.pdf)
+          [√] Personal Appendix Materials RAR (BS_002.rar)
+          [√] Contents: COMP704 descriptor.pdf / Individual Log.docx / Project
+              Proposal.docx
+          Verified team materials related to Module 1:
+          [√] Developer Manual Chapters 2-5 and Appendix A
+          [√] Module 1 codebase (src/cai/)
+          [√] Agent test records
+Problem:  None.
+Solution: None.
+Plan:     No special arrangements.
+
+2026-05-01 ~ 2026-05-04 (Labour Day Holiday)
+Note:     Main project work was completed before April 25. During the May
+          holiday period, only monitored email to handle any potential feedback
+          from the supervisor.
+
+================================================================================
+Week 10 (May 5 — May 12, 2026) — Final Submission & Responding to Feedback
+================================================================================
+
+2026-05-05 (Mon) — 1.5 hours
+Task:     Address supervisor feedback.
+Done:     Received supervisor feedback on the reflective report first draft:
+          recommended adding more critical analysis of MCP protocol limitations.
+          Added approximately 500 words of MCP limitation analysis to the
+          "Project Evaluation" section of the reflective report:
+          - Shortcomings of stdio transport in cross-machine scenarios.
+          - Edge case handling limitations in schema parsing.
+          - Improvement directions for the tool discovery mechanism (from
+            static schemas to dynamic tool recommendations).
+Problem:  None.
+Solution: None.
+Plan:     Update the reflective report PDF.
+
+2026-05-06 (Tue) — 1.0 hour
+Task:     Final reflective report update.
+Done:     Re-exported the revised reflective report as PDF. Updated version to
+          v2.0 (final version). Re-uploaded the updated BS_001.pdf to the
+          DingTalk group, replacing the old version.
+Problem:  None.
+Solution: None.
+Plan:     No special arrangements.
+
+2026-05-08 (Thu) — 0.5 hour
+Task:     Final confirmation of material receipt status.
+Done:     Confirmed on DingTalk that the supervisor had received and reviewed
+          all personal materials. Confirmed that Team Lead D had submitted the
+          team's CN07_Final portfolio.rar to OneDrive.
+Problem:  None.
+Solution: None.
+Plan:     No special arrangements.
+
+2026-05-12 (Mon) — DEADLINE
+Task:     Submission deadline confirmation.
+Done:     Final confirmation that all materials were submitted on time with no
+          omissions. Confirmed in the team group that all members had completed
+          their submissions. Project officially concluded.
+
+================================================================================
+                         Workload Summary
+================================================================================
+
+Week 1   (03/03 - 03/09):  13.5 h  | Environment setup, ReAct Agent demo, MCP theory
+Week 2   (03/10 - 03/16):  14.5 h  | MCP Client, Agent-MCP integration, Schema analysis
+Week 3   (03/17 - 03/23):  14.0 h  | Prompt engineering, Mock tests, Token tracking, Dev manual
+Week 4   (03/24 - 03/30):  13.5 h  | Memory management, Log interceptor, Dev manual cont.
+Week 5   (03/31 - 04/06):  14.5 h  | Tool retrieval system, 3-module integration, Fault tolerance
+Week 6   (04/07 - 04/13):  15.0 h  | Full tool integration, Concurrency test, 2nd integration
+Week 7   (04/14 - 04/20):  17.5 h  | System integration, Dockerization, E2E test, Reflective report
+Week 8   (04/21 - 04/27):   9.0 h  | Doc refinement, References, Packaging, Git cleanup
+Week 9   (04/28 - 05/04):   2.5 h  | FAQ supplement, Final verification
+Week 10  (05/05 - 05/12):   3.0 h  | Supervisor feedback revision, Final submission confirmation
+--------------------------------------------------------------
+Total:                     117.0 h
+
+================================================================================
+                  Module 1 Core Deliverables
+================================================================================
+
+[1]  ReAct Agent Core Engine (react_agent.py)                        | Code
+[2]  MCP Client Implementation (client.py)                          | Code
+[3]  MCP Schema Parser (schema_parser.py)                           | Code
+[4]  MCP Tool LangChain Wrapper (tool_wrapper.py)                   | Code
+[5]  Tool Semantic Retrieval System (tool_retriever.py)             | Code
+[6]  Summary Memory Module (summary_memory.py)                      | Code
+[7]  Log Interceptor (interceptor.py)                               | Code
+[8]  System Prompt Design (ctf_solver_system.txt)                   | Config
+[9]  Mock Tool Set (mock_tools.py)                                  | Test
+[10] Developer Manual (AI Architecture, Prompt Design,               | Doc
+     MCP Integration, Configuration Guide, FAQ)
+[11] Personal Reflective Report (BS_001.pdf)                        | Doc
+[12] Personal Work Log (Individual Log.docx)                        | Doc
+
+================================================================================
+Prepared by:   [Member A Name]
+Last Updated:  May 12, 2026
+Version:       v1.0
+================================================================================

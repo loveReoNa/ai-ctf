@@ -541,38 +541,6 @@ class CostTracker:
         except Exception as e:
             print(f"  WARNING: Error loading local pricing.json: {str(e)}")
 
-        # Fallback to LiteLLM API if local pricing not found
-        LITELLM_URL = (
-            "https://raw.githubusercontent.com/BerriAI/litellm/main/"
-            "model_prices_and_context_window.json"
-        )
-
-        try:
-            import requests
-
-            response = requests.get(LITELLM_URL, timeout=2)
-            if response.status_code == 200:
-                model_pricing_data = response.json()
-
-                # Get pricing info for the model
-                pricing_info = model_pricing_data.get(model_name, {})
-                input_cost_per_token = pricing_info.get("input_cost_per_token", 0)
-                output_cost_per_token = pricing_info.get("output_cost_per_token", 0)
-
-                # Cache the results
-                self.model_pricing_cache[model_name] = (input_cost_per_token, output_cost_per_token)
-                return input_cost_per_token, output_cost_per_token
-        except Exception as e:
-            # Check if it's a network connectivity issue by testing a simple connection
-            try:
-                import requests
-                test_response = requests.get("https://aliasrobotics.com/", timeout=1)
-                # The pricing URL failed
-                print(f"  WARNING: Error fetching model pricing: {str(e)}")
-            except Exception:
-                # No internet connection, silently skip the warning
-                pass
-
         # Default to zero cost if no pricing found (local/free models)
         default_pricing = (0.0, 0.0)
         self.model_pricing_cache[model_name] = default_pricing
